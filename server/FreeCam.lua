@@ -1,9 +1,12 @@
 
 class("FreeCamManager")
 
-function FreeCamManager:__init()	
-	local file = io.open("trajectories.txt","a")
-	io.close(file)
+function FreeCamManager:__init()
+	local file = io.open(Config.trajectoryPath, "r")
+	if file == nil then
+		file = io.open(Config.trajectoryPath, "w")
+	end
+	file:close()
 	Network:Subscribe("FreeCam", self, self.SetPlayerPos)
 	Network:Subscribe("FreeCamStore", self, self.StoreTrajectory)
 end
@@ -31,7 +34,7 @@ function FreeCamManager:StoreTrajectory(args, client)
 		end
 		print(string.format("Received trajectory %s with %d waypoints by %s",
 							args.name, #args.trajectory, client:GetName()))
-		for line in io.lines("trajectories.txt") do
+		for line in io.lines(Config.trajectoryPath) do
 			local exists = string.find(line, "NAME%(" .. args.name .. "%)")
 			if exists then
 				client:SendChatMessage(string.format("%s Trajectory with this name already exists!",
@@ -39,7 +42,7 @@ function FreeCamManager:StoreTrajectory(args, client)
 				return
 			end
 		end
-		file = io.open("trajectories.txt", "a")
+		file = io.open(Config.trajectoryPath, "a")
 		file:write(string.format("NAME(%s)", args.name))
 		for k, v in ipairs(args.trajectory) do
 			file:write(string.format("W%f,%f,%f %f,%f,%f",
@@ -59,7 +62,7 @@ function FreeCamManager:StoreTrajectory(args, client)
 							client:GetName(), args.name))
 		
 		local found = false
-		for line in io.lines("trajectories.txt") do
+		for line in io.lines(Config.trajectoryPath) do
 			local exists = string.find(line, "NAME%(" .. args.name .. "%)")
 			if exists then
 				local trajectory = {}
@@ -73,7 +76,6 @@ function FreeCamManager:StoreTrajectory(args, client)
 					local angle = waypoint[2]:split(",")
 					pos = Vector3(tonumber(pos[1]), tonumber(pos[2]), tonumber(pos[3]))
 					angle = Angle(tonumber(angle[1]), tonumber(angle[2]), tonumber(angle[3]))
-					print("pos: " .. tostring(pos) .. " angle: " .. tostring(angle))
 					table.insert(trajectory, {["pos"] = pos,
 											  ["angle"] = angle})
 				end
@@ -95,7 +97,7 @@ function FreeCamManager:StoreTrajectory(args, client)
 		
 		local content = {}
 		local found = false
-		for line in io.lines("trajectories.txt") do
+		for line in io.lines(Config.trajectoryPath) do
 			local remove = string.find(line, "NAME%(" .. args.name .. "%)")
 			if not remove then
 				content[#content+1] = line
@@ -104,7 +106,7 @@ function FreeCamManager:StoreTrajectory(args, client)
 			end
 		end
 
-		local file = io.open("trajectories.txt", "w+")
+		local file = io.open(Config.trajectoryPath, "w+")
 		for i, v in ipairs(content) do
 			print(v)
 			file:write(v .. "\n")
