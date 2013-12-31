@@ -25,10 +25,10 @@ function FreeCam:__init()
 	Events:Subscribe("LocalPlayerChat", self, self.TrajectorySaver)	
 
 	Events:Subscribe("ModuleLoad", self, self.ModulesLoad)
-    Events:Subscribe("ModulesLoad", self, self.ModulesLoad)
-    Events:Subscribe("ModuleUnload", self, self.ModuleUnload)
+	Events:Subscribe("ModulesLoad", self, self.ModulesLoad)
+	Events:Subscribe("ModuleUnload", self, self.ModuleUnload)
 
-    Network:Subscribe("FreeCamStore", function(args)
+	Network:Subscribe("FreeCamStore", function(args)
 			if args.trajectory == nil then return end
 			self.trajectory = args.trajectory
 			Chat:Print(string.format("%s Loaded trajectory %s with %d waypoints",
@@ -74,7 +74,6 @@ function FreeCam:ComputeCamera()
 					self.trajectoryDirection = self.trajectoryDirection/norm(self.trajectoryDirection)
 				end
 				local dist = Vector3.Distance(self.waypoint.pos, self.position)
-				print(self.distError)
 				local angleDiff = AngleDiff(self.waypoint.angle, self.angle)
 				self.angleDirection = angleDiff/norm(angleDiff)
 				self.angleSpeed = Vector3(0,0,0)
@@ -99,23 +98,23 @@ function FreeCam:ComputeCamera()
 		-- DEFAULT MODE
 		-- Set translation
 		self.translation = Vector3(0,0,0)
-	    if Input:GetValue(Action.MoveForward) >= 65535 then -- up    	
-	    	self.translation = self.translation + Vector3(0, 0, -1)
-	    end
-	    if Input:GetValue(Action.MoveBackward) >= 65535 then -- down
-	    	self.translation = self.translation + Vector3(0, 0, 1)
-	    end
-	    if Input:GetValue(Action.MoveLeft) >= 65535 then -- left
-	    	self.translation = self.translation + Vector3(-1, 0, 0)
-	    end
-	    if Input:GetValue(Action.MoveRight) >= 65535 then -- right
-	    	self.translation = self.translation + Vector3(1, 0, 0)
-	    end
-	    -- Normalize translation
-	    if self.translation:Length() > 0 then
+		if Input:GetValue(Action.MoveForward) >= 65535 then -- up    	
+			self.translation = self.translation + Vector3(0, 0, -1)
+		end
+		if Input:GetValue(Action.MoveBackward) >= 65535 then -- down
+			self.translation = self.translation + Vector3(0, 0, 1)
+		end
+		if Input:GetValue(Action.MoveLeft) >= 65535 then -- left
+			self.translation = self.translation + Vector3(-1, 0, 0)
+		end
+		if Input:GetValue(Action.MoveRight) >= 65535 then -- right
+			self.translation = self.translation + Vector3(1, 0, 0)
+		end
+		-- Normalize translation
+		if self.translation:Length() > 0 then
 			self.translation = speed * (self.translation/norm(self.translation))
 		end
-	    -- Set position
+		-- Set position
 		self.position = self.position + self.angle * self.translation
 
 	end
@@ -131,41 +130,41 @@ end
 
 ---------- INPUT ----------
 function FreeCam:KeyUp(args)
-    if args.key == string.byte(self.activateKey) then
-    	if not self.active then
-    		self.active = true 
-    		self.position = LocalPlayer:GetBonePosition("ragdoll_Head")
-    		self.angle = LocalPlayer:GetAngle()
-    		self.angle.roll = 0
-    		Mouse:SetPosition(Render.Size/2)
-    	else
-    		self.active = false
-    		self:StopFollow()
-    		if self.teleport then
-        		Network:Send("FreeCam", {["pos"] = self.position, ["angle"] = self.angle})
-        	end
-    	end
-    end
-    if self.active then
-	    -- Trajectory
-	    if args.key == 97 then -- numpad1
-	    	self:ResetTrajectory()
-	    elseif args.key == 98 then -- numpad2
-	    	self:AddWayPoint()
-	    elseif args.key == 99 then -- numpad3
-	    	self:FollowTrajectory(false)
-	    elseif args.key == 100 then -- numpad4
-	    	self:FollowTrajectory(true)
-	    end
-	    if args.key == string.byte('P') then
-	    	if self.pause == nil then selfpause = false end
-	    	self.pause = not self.pause
-	    end
+	if args.key == string.byte(self.activateKey) then
+		if not self.active then
+			self.active = true 
+			self.position = LocalPlayer:GetBonePosition("ragdoll_Head")
+			self.angle = LocalPlayer:GetAngle()
+			self.angle.roll = 0
+			Mouse:SetPosition(Render.Size/2)
+		else
+			self.active = false
+			self:StopFollow()
+			if self.teleport then
+				Network:Send("FreeCam", {["pos"] = self.position, ["angle"] = self.angle})
+			end
+		end
+	end
+	if self.active then
+		-- Trajectory
+		if args.key == 97 then -- numpad1
+			self:ResetTrajectory()
+		elseif args.key == 98 then -- numpad2
+			self:AddWayPoint()
+		elseif args.key == 99 then -- numpad3
+			self:FollowTrajectory(false)
+		elseif args.key == 100 then -- numpad4
+			self:FollowTrajectory(true)
+		end
+		if args.key == string.byte('P') then
+			if self.pause == nil then selfpause = false end
+			self.pause = not self.pause
+		end
 	end
 end
 
 function FreeCam:MouseDown(args)
-	if args.button == 1 then
+	if self.active and args.button == 1 then
 		self:AddWayPoint()
 	end
 end

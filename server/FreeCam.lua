@@ -108,7 +108,6 @@ function FreeCamManager:StoreTrajectory(args, client)
 
 		local file = io.open(Config.trajectoryPath, "w+")
 		for i, v in ipairs(content) do
-			print(v)
 			file:write(v .. "\n")
 		end
 		file:close()
