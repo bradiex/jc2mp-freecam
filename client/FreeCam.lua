@@ -8,21 +8,25 @@ function FreeCam:__init()
 	self.speedDown = Config.speedDown
 	self.teleport = Config.teleport -- Teleport player too cam location when quitting freecam mode
 	self.activateKey = Config.activateKey
+	self.mouseSensitivity = 0.15
+	self.gamepadSensitivity = 0.08
 
 	self.active = false
 	self.translation = Vector3(0,0,0)
 	self.position = Vector3(0,500,0)
 	self.angle = Angle(0,0,0)
 
-	self:ResetTrajectory()
 	self.followingTrajectory = false
 
+	self.gamepadPressed = {false, false, false}
+
 	Events:Subscribe("CalcView", self, self.CalcView)
-	Events:Subscribe("PostTick", self, self.ComputeCamera)
+	Events:Subscribe("PostTick", self, self.UpdateCamera)
 	Events:Subscribe("KeyUp", self, self.KeyUp)
-	Events:Subscribe("MouseMove", self, self.MouseMove) 
 	Events:Subscribe("MouseDown", self, self.MouseDown)
 	Events:Subscribe("LocalPlayerChat", self, self.TrajectorySaver)	
+	Events:Subscribe("LocalPlayerInput", self, self.UpdateAngle)
+	Events:Subscribe("InputPoll", self, self.ResetPressed)
 
 	Events:Subscribe("ModuleLoad", self, self.ModulesLoad)
 	Events:Subscribe("ModulesLoad", self, self.ModulesLoad)
@@ -31,12 +35,12 @@ function FreeCam:__init()
 	Network:Subscribe("FreeCamStore", function(args)
 			if args.trajectory == nil then return end
 			self.trajectory = args.trajectory
-			Chat:Print(string.format("%s Loaded trajectory %s with %d waypoints",
+			Chat:Print(string.format("%s Loaded trajectory '%s' with %d waypoints",
 				Config.name, args.name, #self.trajectory), Config.color)
 		end)
 end
 
-function FreeCam:ComputeCamera()
+function FreeCam:UpdateCamera()
 	if Game:GetState() ~= GUIState.Game or not self.active then return end
 	-- Set speed
 	local speed = self.speed
@@ -116,7 +120,6 @@ function FreeCam:ComputeCamera()
 		end
 		-- Set position
 		self.position = self.position + self.angle * self.translation
-
 	end
 end
 
@@ -124,7 +127,6 @@ function FreeCam:CalcView()
 	if Game:GetState() ~= GUIState.Game or not self.active then return end
 	Camera:SetAngle(self.angle)
 	Camera:SetPosition(self.position)
-	Mouse:SetPosition(Render.Size/2)
 	return false
 end
 
@@ -169,12 +171,52 @@ function FreeCam:MouseDown(args)
 	end
 end
 
-function FreeCam:MouseMove(args)
+
+function FreeCam:UpdateAngle(args)
 	if Game:GetState() ~= GUIState.Game or not self.active then return end
+	local sensitivity = self.mouseSensitivity
+	if Game:GetSetting(GameSetting.GamepadInUse) == 1 then
+		sensitivity = self.gamepadSensitivity
+		if args.input == Action.SequenceButton1 then
+			if not self.gamepadPressed[1] then
+				self:ResetTrajectory()
+				self.gamepadPressed[1] = true
+			end
+		elseif args.input == Action.SequenceButton4 then
+			if not self.gamepadPressed[2] then
+				self:AddWayPoint()
+				self.gamepadPressed[2] = true
+			end
+		elseif args.input == Action.SequenceButton3 then
+			if not self.gamepadPressed[3] then
+				self:FollowTrajectory()
+				self.gamepadPressed[3] = true
+			end
+		end
+	end	
 	if self.followingTrajectory then return end
-	local diff = args.position - Render.Size/2
-	self.angle.yaw = SetAngleRange(self.angle.yaw -math.clamp(diff.x/1000, -0.2, 0.2))
-	self.angle.pitch = SetAngleRange(self.angle.pitch - math.clamp(diff.y/1000, -0.2, 0.2))
+	if args.input == Action.LookUp then
+		self.angle.pitch = math.clamp(self.angle.pitch - args.state * sensitivity, -math.pi/2, math.pi/2)
+	elseif args.input == Action.LookDown then
+		self.angle.pitch = math.clamp(self.angle.pitch + args.state * sensitivity, -math.pi/2, math.pi/2)
+	elseif args.input == Action.LookLeft then
+		self.angle.yaw = SetAngleRange(self.angle.yaw + args.state * sensitivity)
+	elseif args.input == Action.LookRight then
+		self.angle.yaw = SetAngleRange(self.angle.yaw - args.state * sensitivity)
+	end
+end
+
+function FreeCam:ResetPressed(args)
+	if Game:GetState() ~= GUIState.Game or not self.active then return end
+	if Input:GetValue(Action.SequenceButton1) == 0 then
+		self.gamepadPressed[1] = false
+	end
+	if Input:GetValue(Action.SequenceButton4) == 0 then
+		self.gamepadPressed[2] = false
+	end
+	if Input:GetValue(Action.SequenceButton3) == 0 then
+		self.gamepadPressed[3] = false
+	end
 end
 
 ---------- TRAJECTORY ----------
@@ -212,7 +254,7 @@ function FreeCam:ResetTrajectory()
 		self:StopFollow()
 	end
 	self.trajectory = nil
-	--print("trajectory resetted")
+	Chat:Print(string.format("%s Trajectory resetted", Config.name), Config.color)
 end
 
 function FreeCam:AddWayPoint()
@@ -220,8 +262,8 @@ function FreeCam:AddWayPoint()
 		self.trajectory = {}
 	end
 	table.insert(self.trajectory, {["pos"] = Copy(self.position),
-								   ["angle"] = Copy(self.angle)})
-	--print("added " .. tostring(self.position))
+								   ["angle"] = Copy(self.angle)})	
+	Chat:Print(string.format("%s Added waypoint #%d", Config.name, #self.trajectory), Config.color)
 end
 
 function FreeCam:FollowTrajectory(startHere)
@@ -256,8 +298,6 @@ function FreeCam:StopFollow()
 		self.position = self.camBackup.pos
 		self.angle = self.camBackup.angle
 		self.camBackup = nil
-	-- else
-	-- Chat:Print("weird", Color())
 	end
 end
 ---------- INFO ----------
@@ -267,17 +307,18 @@ function FreeCam:ModulesLoad()
         {
             name = "FreeCam",
             text = 
-            	"FreeCam (v0.0)\n\n"..
+            	"FreeCam v0.1\n\n"..
                 "A free/spectator cam.\n\n"..
-                "Press V to activate.\n\n"..
+                "-> Press V to activate\n"..
+                "-> Use SHIFT to speed up, CTRL to slow down or Increase/Decrease trust on gamepad\n\n"..
                 "Making trajectories (still in beta):\n"..
-                "numpad1: reset trajectory\n"..
-                "numpad2/left mouse click: add waypoint to current trajectory\n"..
-                "numpad3: start/stop auto follow trajectory mode (starting from the first waypoint)\n"..
-                "numpad4: start/stop auto follow trajectory mode (starting from current camera position)\n"..
-                "P: pause the auto follow trajectory mode\n\n"..
+                "- numpad1/gamepad X: reset trajectory\n"..
+                "- numpad2/left mouse click/gamepad A: add waypoint to current trajectory\n"..
+                "- numpad3/gamepad B: start/stop auto follow trajectory mode (starting from the first waypoint)\n"..
+                "- numpad4: start/stop auto follow trajectory mode (starting from current camera position)\n"..
+                "- P: pause the auto follow trajectory mode\n\n"..
                 "Commands for saving trajectories:\n"..
-                "Type /freecam <save/load/delete> <trajectory_name> in the chat."
+                "-> Type /freecam <save/load/delete> <trajectory_name> in the cha."
         })
 end
 

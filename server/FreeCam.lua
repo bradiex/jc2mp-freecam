@@ -32,16 +32,16 @@ function FreeCamManager:StoreTrajectory(args, client)
 			client:SendChatMessage(string.format("%s No trajectory found!", Config.name), Config.colorError)
 			return
 		end
-		print(string.format("Received trajectory %s with %d waypoints by %s",
-							args.name, #args.trajectory, client:GetName()))
+		local found = false
 		for line in io.lines(Config.trajectoryPath) do
 			local exists = string.find(line, "NAME%(" .. args.name .. "%)")
 			if exists then
 				client:SendChatMessage(string.format("%s Trajectory with this name already exists!",
 								Config.name), Config.colorError)
-				return
+				found = true
 			end
 		end
+		if found then return end
 		file = io.open(Config.trajectoryPath, "a")
 		file:write(string.format("NAME(%s)", args.name))
 		for k, v in ipairs(args.trajectory) do
@@ -55,12 +55,9 @@ function FreeCamManager:StoreTrajectory(args, client)
 		end
 		file:write("\n")
 		file:close()
-		client:SendChatMessage(string.format("%s Saved trajectory %s with %d waypoints",
+		client:SendChatMessage(string.format("%s Saved trajectory '%s' with %d waypoints",
 								Config.name, args.name, #args.trajectory), Config.color)
-	elseif args.type == "load" then
-		print(string.format("%s requested to load trajectory %s",
-							client:GetName(), args.name))
-		
+	elseif args.type == "load" then		
 		local found = false
 		for line in io.lines(Config.trajectoryPath) do
 			local exists = string.find(line, "NAME%(" .. args.name .. "%)")
@@ -88,13 +85,10 @@ function FreeCamManager:StoreTrajectory(args, client)
 		end
 
 		if not found then
-			client:SendChatMessage(string.format("%s Error: Trajectory %s not found",
+			client:SendChatMessage(string.format("%s Error: Trajectory '%s' not found",
 									Config.name, args.name), Config.colorError)
 		end
-	elseif args.type == "delete" then
-		print(string.format("%s requested to delete trajectory %s",
-							client:GetName(), args.name))
-		
+	elseif args.type == "delete" then		
 		local content = {}
 		local found = false
 		for line in io.lines(Config.trajectoryPath) do
@@ -113,10 +107,10 @@ function FreeCamManager:StoreTrajectory(args, client)
 		file:close()
 
 		if found then			
-			client:SendChatMessage(string.format("%s Removed trajectory %s",
+			client:SendChatMessage(string.format("%s Removed trajectory '%s'",
 				Config.name, args.name), Config.color)
 		else
-			client:SendChatMessage(string.format("%s Error: Trajectory %s not found",
+			client:SendChatMessage(string.format("%s Error: Trajectory '%s' not found",
 				Config.name, args.name), Config.colorError)
 		end
 	else
