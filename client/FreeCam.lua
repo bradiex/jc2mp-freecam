@@ -318,7 +318,7 @@ function FreeCam:ModulesLoad()
                 "- numpad4: start/stop auto follow trajectory mode (starting from current camera position)\n"..
                 "- P: pause the auto follow trajectory mode\n\n"..
                 "Commands for saving trajectories:\n"..
-                "-> Type /freecam <save/load/delete> <trajectory_name> in the cha."
+                "-> Type /freecam <save/load/delete> <trajectory_name> in the chat."
         })
 end
 
