@@ -228,20 +228,26 @@ function FreeCam:TrajectorySaver(args)
 		if #msg < 3 then
 			Chat:Print(string.format("%s Usage: /freecam <save/load/delete> <trajectory_name>", Config.name), Config.color)
 		else
-			if msg[2] == "save" then
+			table.remove(msg, 1)
+			local command = table.remove(msg, 1)
+			local name = table.concat(msg):gsub("[^%a%d]", "")
+			if command == "save" then
 				if self.trajectory == nil then
-					Chat:Print(string.format("%s Error: No trajectory found!", Config.name), Config.colorError)
-				else
+					Chat:Print(string.format("%s Error: No waypoints present!", Config.name), Config.colorError)
+				else					
 					Network:Send("FreeCamStore", {["type"] = "save",
-												  ["name"] = msg[3],
+												  ["name"] = name,
 												  ["trajectory"] = self.trajectory})
+					if #self.trajectory == 1 then
+						self:ResetTrajectory()
+					end
 				end
-			elseif msg[2] == "load" then
+			elseif command == "load" then
 				Network:Send("FreeCamStore", {["type"] = "load",
-											  ["name"] = msg[3]})
-			elseif msg[2] == "delete" then
+											  ["name"] = name})
+			elseif command == "delete" then
 				Network:Send("FreeCamStore", {["type"] = "delete",
-											  ["name"] = msg[3]})
+											  ["name"] = name})
 			end
 		end
 		return false
@@ -262,7 +268,7 @@ function FreeCam:AddWayPoint()
 		self.trajectory = {}
 	end
 	table.insert(self.trajectory, {["pos"] = Copy(self.position),
-								   ["angle"] = Copy(self.angle)})	
+								   ["angle"] = Copy(self.angle)})
 	Chat:Print(string.format("%s Added waypoint #%d", Config.name, #self.trajectory), Config.color)
 end
 
@@ -307,9 +313,9 @@ function FreeCam:ModulesLoad()
         {
             name = "FreeCam",
             text = 
-            	"FreeCam v0.1\n\n"..
+            	"FreeCam v0.2\n\n"..
                 "A free/spectator cam.\n\n"..
-                "-> Press V to activate\n"..
+                "-> Press V to activate/deactive\n"..
                 "-> Use SHIFT to speed up, CTRL to slow down or Increase/Decrease trust on gamepad\n\n"..
                 "Making trajectories (still in beta):\n"..
                 "- numpad1/gamepad X: reset trajectory\n"..
@@ -318,7 +324,9 @@ function FreeCam:ModulesLoad()
                 "- numpad4: start/stop auto follow trajectory mode (starting from current camera position)\n"..
                 "- P: pause the auto follow trajectory mode\n\n"..
                 "Commands for saving trajectories:\n"..
-                "-> Type /freecam <save/load/delete> <trajectory_name> in the chat."
+                "-> Type /freecam <save/load/delete> <trajectory_name> in the chat"..
+                "Commands for saving single position:\n"..
+                "-> Type /freecam save <position_name> in the chat while having one waypoint set"
         })
 end
 

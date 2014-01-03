@@ -2,16 +2,20 @@
 class("FreeCamManager")
 
 function FreeCamManager:__init()
-	local file = io.open(Config.trajectoryPath, "r")
-	if file == nil then
-		file = io.open(Config.trajectoryPath, "w")
+	local files = {Config.trajectoryPath, Config.positionsPath}
+	for i, v in ipairs(files) do
+		local file = io.open(v, "r")
+		if file == nil then
+			file = io.open(v, "w")
+		end
+		file:close()
 	end
-	file:close()
 	Network:Subscribe("FreeCam", self, self.SetPlayerPos)
 	Network:Subscribe("FreeCamStore", self, self.StoreTrajectory)
 end
 
 function FreeCamManager:SetPlayerPos(args, client)
+	if not Config.teleport then return end
 	if client:InVehicle() then
 		client:GetVehicle():SetPosition(args.pos)
 		client:GetVehicle():SetPosition(args.angle)
@@ -22,9 +26,14 @@ function FreeCamManager:SetPlayerPos(args, client)
 end
 
 function FreeCamManager:StoreTrajectory(args, client)
-	if args.type == nil or args.name == nil then
+	local name = nil
+	if args.name ~= nil then
+		-- Only allow letters and digits
+		name = args.name:gsub("[^%a%d]", "")
+	end
+	if args.type == nil or name == nil then
 		client:SendChatMessage(string.format("%s Usage: /freecam <save/load/delete> <trajectory_name>",
-								Config.name, args.name), Config.color)
+								Config.name), Config.color)
 		return
 	end
 	if args.type == "save" then
@@ -32,31 +41,51 @@ function FreeCamManager:StoreTrajectory(args, client)
 			client:SendChatMessage(string.format("%s No trajectory found!", Config.name), Config.colorError)
 			return
 		end
+		local fileName = Config.trajectoryPath
+		local typeName = "Trajectory"
+		if #args.trajectory == 1 then -- Position
+			fileName = Config.positionsPath
+			typeName = "Position"
+		end
+
 		local found = false
-		for line in io.lines(Config.trajectoryPath) do
-			local exists = string.find(line, "NAME%(" .. args.name .. "%)")
+		for line in io.lines(fileName) do
+			local exists = string.find(line, "NAME%(" .. name .. "%)")
 			if exists then
-				client:SendChatMessage(string.format("%s Trajectory with this name already exists!",
-								Config.name), Config.colorError)
+				client:SendChatMessage(string.format("%s %s with this name already exists!",
+								Config.name, typeName), Config.colorError)
 				found = true
 			end
 		end
 		if found then return end
-		file = io.open(Config.trajectoryPath, "a")
-		file:write(string.format("NAME(%s)", args.name))
-		for k, v in ipairs(args.trajectory) do
-			file:write(string.format("W%f,%f,%f %f,%f,%f",
-														v.pos.x,
-														v.pos.y,
-														v.pos.z,
-														v.angle.yaw,
-														v.angle.pitch,
-														v.angle.roll))
+
+		file = io.open(fileName, "a")
+		if #args.trajectory == 1 then
+			-- Save position
+			local pos = args.trajectory[1].pos
+			file:write(string.format("T %s, %f, %f, %f\n",
+						name,
+						pos.x, pos.y, pos.z)
+					)
+			client:SendChatMessage(string.format("%s Saved position '%s'!",
+								Config.name, name), Config.color)
+		else
+			-- Save trajectory
+			file:write(string.format("NAME(%s)", name))
+			for k, v in ipairs(args.trajectory) do
+				file:write(string.format("W%f,%f,%f %f,%f,%f",
+													v.pos.x,
+													v.pos.y,
+													v.pos.z,
+													v.angle.yaw,
+													v.angle.pitch,
+													v.angle.roll))
+			end
+			file:write("\n")
+			client:SendChatMessage(string.format("%s Saved trajectory '%s' with %d waypoints!",
+								Config.name, name, #args.trajectory), Config.color)
 		end
-		file:write("\n")
 		file:close()
-		client:SendChatMessage(string.format("%s Saved trajectory '%s' with %d waypoints",
-								Config.name, args.name, #args.trajectory), Config.color)
 	elseif args.type == "load" then		
 		local found = false
 		for line in io.lines(Config.trajectoryPath) do

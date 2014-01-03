@@ -20,8 +20,10 @@ Config = {
 	["speedDown"] = 4,
 
 	-- MISC --
-	-- Teleport player to cam location when quiting
+	-- Teleport player to cam location when quitting
 	["teleport"] = true,
-	-- Location on the server for the saved trajectories file
-	["trajectoryPath"] = "trajectories.txt"
+	-- Location on the server to save trajectories
+	["trajectoryPath"] = "trajectories.txt",
+	-- Location on the server to save single positions
+	["positionsPath"] = "positions.txt"
 }
