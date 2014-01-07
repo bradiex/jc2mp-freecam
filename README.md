@@ -27,8 +27,8 @@ Type (re/un)load freecam into the server console  to (re/un)load this module.<br
 ## For developers
 - Events:
 	- This module launches a "FreeCamChange" event with argument "active" on both client and serverside when the cam is (de)activated
-- WhiteList: (See **'shared/WhiteList.lua'**)
-	- If you want to limit this feature to a whitelist, add the steam id's (in "7656119xxxxxxxxxx" or "STEAM_0:x:xxxxxx" format) to the list
+- WhiteList: (See **'server/WhiteList.lua'**)
+	- Add steam id's to this list if you want to limit this feature to some players
 	- Only whitelisted players can save trajectories/spawnpoints
 	- It is also possible to change permissions and force the specate view on the fly by firing a "FreeCam" Event (also documented in WhiteList.lua)
 
