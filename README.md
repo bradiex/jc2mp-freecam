@@ -1,4 +1,4 @@
-# FreeCam (v0.2) for JC2-MP
+# FreeCam (v0.3) for JC2-MP
 **FreeCam** is a free/spectate camera module for the [Just Cause 2 Multiplayer Mod](http://store.steampowered.com/app/259080/).<br>
 You can also add waypoints to a trajectory and let the camera follow that trajectory automatically (still in beta).<br>
 It is also possible to save, load and delete these trajectories on the server which comes in handy to create checkpoints for races or borders for some area's.<br>
@@ -24,3 +24,6 @@ Type (re/un)load freecam into the server console  to (re/un)load this module.<br
 	- Type /freecam &lt;save/load/delete&gt; &lt;trajectory_name&gt; in the chat
 - Commands for saving single position:
 	- Type /freecam save &lt;position_name&gt; in the chat while having one waypoint set
+
+## For developers
+This module launches a "FreeCam" event with argument "active" on both client and serverside when the cam is (de)activated.

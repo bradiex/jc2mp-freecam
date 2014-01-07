@@ -10,12 +10,13 @@ function FreeCamManager:__init()
 		end
 		file:close()
 	end
-	Network:Subscribe("FreeCam", self, self.SetPlayerPos)
+	Network:Subscribe("FreeCam", self, self.TeleportPlayer)
+	Network:Subscribe("FreeCam", self, self.FireEvent)
 	Network:Subscribe("FreeCamStore", self, self.StoreTrajectory)
 end
 
-function FreeCamManager:SetPlayerPos(args, client)
-	if not Config.teleport then return end
+function FreeCamManager:TeleportPlayer(args, client)
+	if not Config.teleport or args.pos == nil then return end
 	if client:InVehicle() then
 		client:GetVehicle():SetPosition(args.pos)
 		client:GetVehicle():SetPosition(args.angle)
@@ -23,6 +24,11 @@ function FreeCamManager:SetPlayerPos(args, client)
 		client:SetPosition(args.pos)
 		client:SetAngle(args.angle)
 	end
+end
+
+function FreeCamManager:FireEvent(args, client)
+	if args.active == nil then return end
+	Events:Fire("FreeCam", args)
 end
 
 function FreeCamManager:StoreTrajectory(args, client)

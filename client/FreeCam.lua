@@ -139,12 +139,16 @@ function FreeCam:KeyUp(args)
 			self.angle = LocalPlayer:GetAngle()
 			self.angle.roll = 0
 			Mouse:SetPosition(Render.Size/2)
+			Network:Send("FreeCam", {["active"] = true}) -- Notice for server
+			Events:Fire("FreeCam", {["active"] = true}) -- Notice for client
 		else
 			self.active = false
 			self:StopFollow()
 			if self.teleport then
 				Network:Send("FreeCam", {["pos"] = self.position, ["angle"] = self.angle})
 			end
+			Network:Send("FreeCam", {["active"] = false}) -- Notice for server
+			Events:Fire("FreeCam", {["active"] = false}) -- Notice for client
 		end
 	end
 	if self.active then
