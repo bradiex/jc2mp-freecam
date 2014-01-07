@@ -10,6 +10,7 @@ function FreeCam:__init()
 	self.activateKey = Config.activateKey
 	self.mouseSensitivity = 0.15
 	self.gamepadSensitivity = 0.08
+	self.permitted = not Config.useWhiteList -- Default
 
 	self.active = false
 	self.translation = Vector3(0,0,0)
@@ -25,18 +26,37 @@ function FreeCam:__init()
 	Events:Subscribe("KeyUp", self, self.KeyUp)
 	Events:Subscribe("MouseDown", self, self.MouseDown)
 	Events:Subscribe("LocalPlayerChat", self, self.TrajectorySaver)	
-	Events:Subscribe("LocalPlayerInput", self, self.UpdateAngle)
+	Events:Subscribe("LocalPlayerInput", self, self.PlayerInput)
 	Events:Subscribe("InputPoll", self, self.ResetPressed)
 
 	Events:Subscribe("ModuleLoad", self, self.ModulesLoad)
 	Events:Subscribe("ModulesLoad", self, self.ModulesLoad)
 	Events:Subscribe("ModuleUnload", self, self.ModuleUnload)
 
+	-- Load trajectory
 	Network:Subscribe("FreeCamStore", function(args)
 			if args.trajectory == nil then return end
 			self.trajectory = args.trajectory
 			Chat:Print(string.format("%s Loaded trajectory '%s' with %d waypoints",
 				Config.name, args.name, #self.trajectory), Config.color)
+		end)
+
+	-- Change permission/force activate
+	Network:Subscribe("FreeCam", function(args)
+			if args.perm ~= nil then
+				-- Change permission
+				self.permitted = args.perm
+			end
+			if args.active ~= nil then
+				-- Set active
+				if args.active then
+					self:Activate()
+				else
+					self:Deactivate()
+				end
+				Network:Send("FreeCamChange", {["active"] = self.active}) -- Notice for server
+				Events:Fire("FreeCamChange", {["active"] = self.active}) -- Notice for client
+			end
 		end)
 end
 
@@ -130,26 +150,31 @@ function FreeCam:CalcView()
 	return false
 end
 
+function FreeCam:Activate()
+	self.active = true 
+	self.position = LocalPlayer:GetBonePosition("ragdoll_Head")
+	self.angle = LocalPlayer:GetAngle()
+	self.angle.roll = 0
+end
+
+function FreeCam:Deactivate()
+	self.active = false
+	self:StopFollow()
+	if self.teleport then
+		Network:Send("FreeCamTP", {["pos"] = self.position, ["angle"] = self.angle})
+	end
+end
+
 ---------- INPUT ----------
-function FreeCam:KeyUp(args)
-	if args.key == string.byte(self.activateKey) then
+function FreeCam:KeyUp(args)	
+	if args.key == string.byte(self.activateKey) and self.permitted then
 		if not self.active then
-			self.active = true 
-			self.position = LocalPlayer:GetBonePosition("ragdoll_Head")
-			self.angle = LocalPlayer:GetAngle()
-			self.angle.roll = 0
-			Mouse:SetPosition(Render.Size/2)
-			Network:Send("FreeCam", {["active"] = true}) -- Notice for server
-			Events:Fire("FreeCam", {["active"] = true}) -- Notice for client
+			self:Activate()
 		else
-			self.active = false
-			self:StopFollow()
-			if self.teleport then
-				Network:Send("FreeCam", {["pos"] = self.position, ["angle"] = self.angle})
-			end
-			Network:Send("FreeCam", {["active"] = false}) -- Notice for server
-			Events:Fire("FreeCam", {["active"] = false}) -- Notice for client
+			self:Deactivate()
 		end
+		Network:Send("FreeCamChange", {["active"] = self.active}) -- Notice for server
+		Events:Fire("FreeCamChange", {["active"] = self.active}) -- Notice for client
 	end
 	if self.active then
 		-- Trajectory
@@ -176,9 +201,10 @@ function FreeCam:MouseDown(args)
 end
 
 
-function FreeCam:UpdateAngle(args)
+function FreeCam:PlayerInput(args)
 	if Game:GetState() ~= GUIState.Game or not self.active then return end
 	local sensitivity = self.mouseSensitivity
+	-- GamePad input
 	if Game:GetSetting(GameSetting.GamepadInUse) == 1 then
 		sensitivity = self.gamepadSensitivity
 		if args.input == Action.SequenceButton1 then
@@ -197,7 +223,8 @@ function FreeCam:UpdateAngle(args)
 				self.gamepadPressed[3] = true
 			end
 		end
-	end	
+	end
+	-- Change camera angle
 	if self.followingTrajectory then return end
 	if args.input == Action.LookUp then
 		self.angle.pitch = math.clamp(self.angle.pitch - args.state * sensitivity, -math.pi/2, math.pi/2)
@@ -317,19 +344,18 @@ function FreeCam:ModulesLoad()
         {
             name = "FreeCam",
             text = 
-            	"FreeCam v0.2\n\n"..
+            	"FreeCam v0.3\n\n"..
                 "A free/spectator cam.\n\n"..
                 "-> Press V to activate/deactive\n"..
                 "-> Use SHIFT to speed up, CTRL to slow down or Increase/Decrease trust on gamepad\n\n"..
-                "Making trajectories (still in beta):\n"..
+                "Making trajectories (while in FreeCam mode):\n"..
                 "- numpad1/gamepad X: reset trajectory\n"..
                 "- numpad2/left mouse click/gamepad A: add waypoint to current trajectory\n"..
                 "- numpad3/gamepad B: start/stop auto follow trajectory mode (starting from the first waypoint)\n"..
                 "- numpad4: start/stop auto follow trajectory mode (starting from current camera position)\n"..
                 "- P: pause the auto follow trajectory mode\n\n"..
-                "Commands for saving trajectories:\n"..
-                "-> Type /freecam <save/load/delete> <trajectory_name> in the chat"..
-                "Commands for saving single position:\n"..
+                "Commands for saving trajectories and spawnpoints (white listed players only):\n"..
+                "-> Type /freecam <save/load/delete> <trajectory_name> in the chat\n"..
                 "-> Type /freecam save <position_name> in the chat while having one waypoint set"
         })
 end

@@ -25,5 +25,8 @@ Config = {
 	-- Location on the server to save trajectories
 	["trajectoryPath"] = "trajectories.txt",
 	-- Location on the server to save single positions
-	["positionsPath"] = "positions.txt"
+	["positionsPath"] = "positions.txt",
+
+	-- Use white list to limit this function
+	["useWhiteList"] = true
 }

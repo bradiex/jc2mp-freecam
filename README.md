@@ -20,10 +20,27 @@ Type (re/un)load freecam into the server console  to (re/un)load this module.<br
 	- numpad3/gamepad B: start/stop auto follow trajectory mode (starting from the first waypoint)
 	- numpad4: start/stop auto follow trajectory mode (starting from current camera position)
 	- P: pause the auto follow trajectory mode
-- Commands for saving trajectories:
-	- Type /freecam &lt;save/load/delete&gt; &lt;trajectory_name&gt; in the chat
-- Commands for saving single position:
-	- Type /freecam save &lt;position_name&gt; in the chat while having one waypoint set
+- Commands for saving trajectories and spawnpoints (white listed players only):
+	- Type /freecam <save/load/delete> <trajectory_name> in the chat
+	- Type /freecam save <position_name> in the chat while having one waypoint set
 
 ## For developers
-This module launches a "FreeCam" event with argument "active" on both client and serverside when the cam is (de)activated.
+- Events:
+	- This module launches a "FreeCamChange" event with argument "active" on both client and serverside when the cam is (de)activated
+- WhiteList: (See **'shared/WhiteList.lua'**)
+	- If you want to limit this feature to a whitelist, add the steam id's (in "7656119xxxxxxxxxx" or "STEAM_0:x:xxxxxx" format) to the list
+	- Only whitelisted players can save trajectories/spawnpoints
+	- It is also possible to change permissions and force the specate view on the fly by firing a "FreeCam" Event (also documented in WhiteList.lua)
+
+
+
+## ChangeLog
+### Update v0.3
+- Added FreeCamChange events to notice other modules when the camera is (de)activated
+- Added a whitelist + possibility to manipulate the permissions to this freecam
+
+### Update v0.2
+- Save single position in extra file in default spawnlocation format (T <name>, x, y, z)
+
+### Update v0.1
+- Some minor improvements and better gamepad support
