@@ -21,6 +21,7 @@ function FreeCamManager:__init()
 	-- Notice other modules on serverside when cam has changed
 	Network:Subscribe("FreeCamChange", function(args, client)
 			if args.active == nil then return end
+			args.player = client
 			Events:Fire("FreeCamChange", args)
 		end)
 
