@@ -15,7 +15,7 @@ function FreeCamManager:__init()
 
 	-- Set default permissions from whitelist
 	Events:Subscribe("ModuleLoad", self, self.SendPermissionAll)
-	--Events:Subscribe("ModulesLoad", self, self.SendPermissionAll)
+	Events:Subscribe("ModulesLoad", self, self.SendPermissionAll)
 	Events:Subscribe("PlayerJoin", self, self.SendPermission)
 
 	-- Notice other modules on serverside when cam has changed
@@ -95,13 +95,16 @@ function FreeCamManager:StoreTrajectory(args, client)
 		return
 	end
 	if args.type == "save" then
-		if args.trajectory == nil then
+		if args.trajectory == nil and args.position == nil then
 			client:SendChatMessage(string.format("%s No trajectory found!", Config.name), Config.colorError)
 			return
 		end
-		local fileName = Config.trajectoryPath
-		local typeName = "Trajectory"
-		if #args.trajectory == 1 then -- Position
+		local fileName = nil
+		local typeName = nil
+		if args.trajectory then
+			fileName = Config.trajectoryPath
+			typeName = "Trajectory"
+		elseif args.position then
 			fileName = Config.positionsPath
 			typeName = "Position"
 		end
@@ -109,7 +112,8 @@ function FreeCamManager:StoreTrajectory(args, client)
 		local found = false
 		for line in io.lines(fileName) do
 			local exists = string.find(line, "NAME%(" .. name .. "%)")
-			if exists then
+			local exists2 = string.find(line, "T " .. name .. ",")
+			if exists or exists2 then
 				client:SendChatMessage(string.format("%s %s with this name already exists!",
 								Config.name, typeName), Config.colorError)
 				found = true
@@ -118,9 +122,9 @@ function FreeCamManager:StoreTrajectory(args, client)
 		if found then return end
 
 		file = io.open(fileName, "a")
-		if #args.trajectory == 1 then
+		if args.position then
 			-- Save position
-			local pos = args.trajectory[1].pos
+			local pos = args.position
 			file:write(string.format("T %s, %f, %f, %f\n",
 						name,
 						pos.x, pos.y, pos.z)

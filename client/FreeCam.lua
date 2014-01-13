@@ -256,29 +256,36 @@ function FreeCam:TrajectorySaver(args)
 	if args.text:sub(1, 1) ~= "/" then return true end
 	local msg = args.text:sub(2):split(" ")
 	if msg[1] == "freecam" then
-		if #msg < 3 then
-			Chat:Print(string.format("%s Usage: /freecam <save/load/delete> <trajectory_name>", Config.name), Config.color)
+		if #msg < 4 then
+			Chat:Print(string.format("%s Usage: /freecam <save/load/delete> <trajectory|position> <name>", Config.name), Config.color)
 		else
 			table.remove(msg, 1)
 			local command = table.remove(msg, 1)
+			local command2 = table.remove(msg, 1)
 			local name = table.concat(msg):gsub("[^%a%d]", "")
 			if command == "save" then
-				if self.trajectory == nil then
-					Chat:Print(string.format("%s Error: No waypoints present!", Config.name), Config.colorError)
-				else					
+				if command2 == "trajectory" then
 					Network:Send("FreeCamStore", {["type"] = "save",
-												  ["name"] = name,
-												  ["trajectory"] = self.trajectory})
-					if #self.trajectory == 1 then
-						self:ResetTrajectory()
+													["name"] = name,
+													["trajectory"] = self.trajectory})
+				elseif command2 == "position" then
+					if not self.active then
+						self.position = LocalPlayer:GetBonePosition("ragdoll_Head")
 					end
+					Network:Send("FreeCamStore", {["type"] = "save",
+													  ["name"] = name,
+													  ["position"] = self.position})
 				end
 			elseif command == "load" then
-				Network:Send("FreeCamStore", {["type"] = "load",
-											  ["name"] = name})
+				if command2 == "trajectory" then
+					Network:Send("FreeCamStore", {["type"] = "load",
+												  ["name"] = name})
+				end
 			elseif command == "delete" then
-				Network:Send("FreeCamStore", {["type"] = "delete",
-											  ["name"] = name})
+				if command2 == "trajectory" then
+					Network:Send("FreeCamStore", {["type"] = "delete",
+												  ["name"] = name})
+				end
 			end
 		end
 		return false
@@ -344,7 +351,7 @@ function FreeCam:ModulesLoad()
         {
             name = "FreeCam",
             text = 
-            	"FreeCam v0.3\n\n"..
+            	"FreeCam v0.3.1\n\n"..
                 "A free/spectator cam.\n\n"..
                 "-> Press V to activate/deactive\n"..
                 "-> Use SHIFT to speed up, CTRL to slow down or Increase/Decrease trust on gamepad\n\n"..
@@ -355,8 +362,8 @@ function FreeCam:ModulesLoad()
                 "- numpad4: start/stop auto follow trajectory mode (starting from current camera position)\n"..
                 "- P: pause the auto follow trajectory mode\n\n"..
                 "Commands for saving trajectories and spawnpoints (white listed players only):\n"..
-                "-> Type /freecam <save/load/delete> <trajectory_name> in the chat\n"..
-                "-> Type /freecam save <position_name> in the chat while having one waypoint set"
+				"-> Type /freecam <save/load/delete> trajectory <trajectory_name> to manage trajectories\n"..
+				"-> Type /freecam save position <position_name> to save positions"
         })
 end
 
