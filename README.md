@@ -21,8 +21,8 @@ Type (re/un)load freecam into the server console  to (re/un)load this module.<br
 	- numpad4: start/stop auto follow trajectory mode (starting from current camera position)
 	- P: pause the auto follow trajectory mode
 - Commands for saving trajectories and spawnpoints (white listed players only):
-	- Type /freecam <save/load/delete> trajectory <trajectory_name> to manage trajectories
-	- Type /freecam save position <position_name> to save positions
+	- Type /freecam &lt;save/load/delete&gt; trajectory &lt;trajectory_name&gt; to manage trajectories
+	- Type /freecam save position &lt;position_name&gt; to save positions
 
 ## For developers
 - Events:
@@ -31,7 +31,6 @@ Type (re/un)load freecam into the server console  to (re/un)load this module.<br
 	- Add steam id's to this list if you want to limit this feature to some players
 	- Only whitelisted players can save trajectories/spawnpoints
 	- It is also possible to change permissions and force the specate view on the fly by firing a "FreeCam" Event (also documented in WhiteList.lua)
-
 
 
 ## ChangeLog
